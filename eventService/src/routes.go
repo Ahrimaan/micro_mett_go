@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -12,6 +13,17 @@ type Todo struct {
 	Title string `json:"title"`
 	Body  string `json:"body"`
 }
+
+type ErrResponse struct {
+	Err            error `json:"-"` // low-level runtime error
+	HTTPStatusCode int   `json:"-"` // http response status code
+
+	StatusText string `json:"status"`          // user-level status message
+	AppCode    int64  `json:"code,omitempty"`  // application-specific error code
+	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
+}
+
+var ErrNotFound = &ErrResponse{HTTPStatusCode: 404, StatusText: "Resource not found."}
 
 func EventRoutes() *chi.Mux {
 	router := chi.NewRouter()
@@ -45,12 +57,10 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllTodos(w http.ResponseWriter, r *http.Request) {
-	todos := []Todo{
-		{
-			Slug:  "slug",
-			Title: "Hello world",
-			Body:  "Heloo world from planet earth",
-		},
+	events, err := GetAllEvents()
+	if err != nil {
+		fmt.Println(err)
+		render.Status(r, 404)
 	}
-	render.JSON(w, r, todos) // A chi router helper for serializing and returning json
+	render.JSON(w, r, events) // A chi router helper for serializing and returning json
 }
